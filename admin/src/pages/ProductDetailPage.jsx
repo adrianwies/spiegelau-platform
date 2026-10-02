@@ -16,9 +16,20 @@ import {
 } from "react-router-dom";
 
 
+
+
+import { getCategories } from "../services/categories.service";
+import { getCollections } from "../services/collections.service";
+
+
 import {
   getProduct,
+  updateProduct,
 } from "../services/products.service";
+
+
+
+
 
 
 function ProductDetailPage() {
@@ -28,25 +39,197 @@ function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+const [categories, setCategories] = useState([]);
+const [collections, setCollections] = useState([]);
 
 
-  useEffect(() => {
-    async function loadProduct() {
-      try {
-        const data = await getProduct(id);
+const [form, setForm] = useState(null);
 
 
-        setProduct(data.product);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+const [saving, setSaving] = useState(false);
+const [saveMessage, setSaveMessage] = useState("");
+
+
+
+
+
+
+useEffect(() => {
+  async function loadData() {
+    try {
+      const [
+        productData,
+        categoriesData,
+        collectionsData,
+      ] = await Promise.all([
+        getProduct(id),
+        getCategories(),
+        getCollections(),
+      ]);
+
+
+      const product =
+        productData.product;
+
+
+      setProduct(product);
+
+
+      setCategories(
+        categoriesData.categories ?? [],
+      );
+
+
+      setCollections(
+        collectionsData.collections ?? [],
+      );
+
+
+      setForm({
+        name: product.name ?? "",
+        sku: product.sku ?? "",
+
+
+        categoryId:
+          product.category?.id ?? "",
+
+
+        collectionId:
+          product.collection?.id ?? "",
+
+
+        presentation:
+          product.presentation ?? "",
+
+
+        shortDescription:
+          product.shortDescription ?? "",
+
+
+        description:
+          product.description ?? "",
+
+
+        price:
+          product.price ?? 0,
+
+
+        offerPrice:
+          product.offerPrice ?? "",
+
+
+        stock:
+          product.stock ?? 0,
+
+
+        featured:
+          product.featured,
+
+
+        new:
+          product.new,
+
+
+        offer:
+          product.offer,
+
+
+        visible:
+          product.visible,
+
+
+        status:
+          product.status,
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
+  }
 
 
-    loadProduct();
-  }, [id]);
+  loadData();
+}, [id]);
+
+function handleChange(event) {
+  const {
+    name,
+    value,
+    type,
+    checked,
+  } = event.target;
+
+
+  setForm((current) => ({
+    ...current,
+
+
+    [name]:
+      type === "checkbox"
+        ? checked
+        : value,
+  }));
+}
+
+async function handleSave(event) {
+  event.preventDefault();
+
+
+  setSaving(true);
+  setSaveMessage("");
+
+
+  try {
+    await updateProduct(id, {
+      ...form,
+
+
+      categoryId:
+        Number(form.categoryId),
+
+
+      collectionId:
+        form.collectionId
+          ? Number(form.collectionId)
+          : null,
+
+
+      price:
+        Number(form.price),
+
+
+      offerPrice:
+        form.offerPrice === ""
+          ? null
+          : Number(form.offerPrice),
+
+
+      stock:
+        Number(form.stock),
+    });
+
+
+    setSaveMessage(
+      "Producto guardado correctamente",
+    );
+  } catch (err) {
+    setSaveMessage(err.message);
+  } finally {
+    setSaving(false);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
   if (loading) {
@@ -120,42 +303,105 @@ function ProductDetailPage() {
           <ExternalLink size={17} />
           Ver producto
         </button>
+        <button
+  type="button"
+  className="secondary-button"
+  disabled
+>
+  <ExternalLink size={17} />
+  Ver producto
+</button>
+
+{saveMessage && (
+  <div className="save-message">
+    {saveMessage}
+  </div>
+)}
+
+
+
+
+
+
+
+
       </div>
 
 
       <div className="product-detail-grid">
         <div className="product-detail-main">
-          <section className="detail-card">
-            <h2>Información del producto</h2>
+         <section className="detail-card">
+  <h2>Información del producto</h2>
 
 
-            <div className="detail-field">
-              <span>Nombre</span>
-              <strong>{product.name}</strong>
-            </div>
+  <div className="form-field">
+    <label htmlFor="name">
+      Nombre
+    </label>
 
 
-            <div className="detail-field">
-              <span>Descripción corta</span>
+    <input
+      id="name"
+      name="name"
+      type="text"
+      value={form.name}
+      onChange={handleChange}
+    />
+  </div>
 
 
-              <p>
-                {product.shortDescription ||
-                  "Sin descripción corta"}
-              </p>
-            </div>
+  <div className="form-field">
+    <label htmlFor="sku">
+      SKU
+    </label>
 
 
-            <div className="detail-field">
-              <span>Descripción</span>
+    <input
+      id="sku"
+      name="sku"
+      type="text"
+      value={form.sku}
+      onChange={handleChange}
+    />
+  </div>
 
 
-              <p className="detail-description">
-                {product.description ||
-                  "Sin descripción"}
-              </p>
-            </div>
-          </section>
+  <div className="form-field">
+    <label htmlFor="shortDescription">
+      Descripción corta
+    </label>
+
+
+    <textarea
+      id="shortDescription"
+      name="shortDescription"
+      rows="3"
+      value={form.shortDescription}
+      onChange={handleChange}
+    />
+  </div>
+
+
+  <div className="form-field">
+    <label htmlFor="description">
+      Descripción
+    </label>
+
+
+    <textarea
+      id="description"
+      name="description"
+      rows="8"
+      value={form.description}
+      onChange={handleChange}
+    />
+  </div>
+</section>
+
+
+
+
+
 
 
           <section className="detail-card">

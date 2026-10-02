@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { pool } from "../config/database.js";
+import { requireAuth } from "../middleware/require-auth.js";
 
 
 const router = Router();
@@ -366,6 +367,209 @@ router.get("/:id", async (req, res) => {
 });
 
 
+
+
+router.patch("/:id", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+
+    const {
+      name,
+      sku,
+      categoryId,
+      collectionId,
+      presentation,
+      shortDescription,
+      description,
+      price,
+      offerPrice,
+      stock,
+      featured,
+      new: isNew,
+      offer,
+      visible,
+      status,
+    } = req.body;
+
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "El nombre es obligatorio",
+      });
+    }
+
+
+    if (!sku?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "El SKU es obligatorio",
+      });
+    }
+
+
+    if (!categoryId) {
+      return res.status(400).json({
+        success: false,
+        message: "La categoría es obligatoria",
+      });
+    }
+
+
+    const normalizedPrice = Number(price);
+    const normalizedStock = Number(stock);
+
+
+    if (
+      !Number.isFinite(normalizedPrice) ||
+      normalizedPrice < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "El precio no es válido",
+      });
+    }
+
+
+    if (
+      !Number.isInteger(normalizedStock) ||
+      normalizedStock < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "El stock no es válido",
+      });
+    }
+
+
+    const validStatuses = [
+      "draft",
+      "published",
+      "archived",
+    ];
+
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Estado no válido",
+      });
+    }
+
+
+    const [existing] = await pool.execute(
+      `
+        SELECT id
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [id],
+    );
+
+
+    if (existing.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Producto no encontrado",
+      });
+    }
+
+
+    const [skuExists] = await pool.execute(
+      `
+        SELECT id
+        FROM products
+        WHERE sku = ?
+          AND id <> ?
+        LIMIT 1
+      `,
+      [sku.trim(), id],
+    );
+
+
+    if (skuExists.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "Ya existe otro producto con ese SKU",
+      });
+    }
+
+
+    await pool.execute(
+      `
+        UPDATE products
+        SET
+          name = ?,
+          sku = ?,
+          category_id = ?,
+          collection_id = ?,
+          presentation = ?,
+          short_description = ?,
+          description = ?,
+          price = ?,
+          offer_price = ?,
+          stock = ?,
+          featured = ?,
+          is_new = ?,
+          offer = ?,
+          visible = ?,
+          status = ?,
+          published_at =
+            CASE
+              WHEN ? = 'published'
+                AND published_at IS NULL
+              THEN CURRENT_TIMESTAMP
+              ELSE published_at
+            END
+        WHERE id = ?
+      `,
+      [
+        name.trim(),
+        sku.trim(),
+        categoryId,
+        collectionId || null,
+        presentation?.trim() || null,
+        shortDescription?.trim() || null,
+        description?.trim() || null,
+        normalizedPrice,
+        offerPrice === "" ||
+        offerPrice === null ||
+        offerPrice === undefined
+          ? null
+          : Number(offerPrice),
+        normalizedStock,
+        featured ? 1 : 0,
+        isNew ? 1 : 0,
+        offer ? 1 : 0,
+        visible ? 1 : 0,
+        status,
+        status,
+        id,
+      ],
+    );
+
+
+    res.json({
+      success: true,
+      message: "Producto actualizado correctamente",
+    });
+  } catch (error) {
+    console.error(
+      "Error actualizando producto:",
+      error,
+    );
+
+
+    res.status(500).json({
+      success: false,
+      message:
+        "No se pudo actualizar el producto",
+    });
+  }
+});
 
 
 

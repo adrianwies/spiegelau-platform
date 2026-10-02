@@ -11,5 +11,13 @@ export function getProduct(id) {
 }
 
 
+export function updateProduct(id, product) {
+  return apiRequest(`/api/products/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(product),
+  });
+}
+
+
 
 
