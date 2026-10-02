@@ -1,0 +1,34 @@
+{
+  "name": "spiegelau-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API para la plataforma administrativa de Spiegelau",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "import:products": "node scripts/import-products.js",
+    "create:admin": "node scripts/create-admin.js"
+
+
+
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.19.0",
+    "lucide-react": "^1.47.0",
+    "mysql2": "^3.24.4",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
